@@ -38,7 +38,7 @@ N.B. Create a GitHub repository for the Language Development in ASD set of assig
 Set the working directory (the directory with your data and code for these assignments):
 
 ```{r}
-
+setwd("C:/Users/Viki/Documents/egyetem/exp.met/port1/assignment1")
 ```
 
 Load the three data sets, after downloading them from dropbox and saving them in your working directory:
@@ -47,7 +47,9 @@ Load the three data sets, after downloading them from dropbox and saving them in
 * Word data: https://www.dropbox.com/s/8ng1civpl2aux58/token_train.csv?dl=0
 
 ```{r}
-
+demo_train= read.csv("C:/Users/Viki/Documents/egyetem/exp.met/port1/assignment1/demo_train(1).csv")
+LU_train= read.csv("C:/Users/Viki/Documents/egyetem/exp.met/port1/assignment1/LU_train.csv")
+taken_train= read.csv("C:/Users/Viki/Documents/egyetem/exp.met/port1/assignment1/token_train.csv")
 ```
 
 Explore the 3 datasets (e.g. visualize them, summarize them, etc.). You will see that the data is messy, since the psychologists collected the demographic data, a linguist analyzed the length of utterance in May 2014 and the same linguist analyzed the words several months later. In particular:
@@ -64,6 +66,12 @@ Tip: Look into the package data.table, or google "how to rename variables in R"
 
 
 ```{r}
+library(plyr)
+
+demo_train = rename(demo_train, c("Child.ID" = "SUBJ"))
+demo_train = rename(demo_train, c("VISIT" = "visit"))
+LU_train = rename(LU_train, c("VISIT" = "visit"))
+taken_train = rename(taken_train, c("VISIT" = "visit"))
 
 ```
 
@@ -71,7 +79,10 @@ Tip: Look into the package data.table, or google "how to rename variables in R"
 Tip: There is a package called stringr, which will be very handy for you also in future assignments. We will return to this package later, but for now use the str_extract () to extract only the number from the variable Visit in each data set. Tip: type ?str_extract() after loading the library, for examples of how to use it.
 
 ```{r}
-
+library(stringr)
+?str_extract()
+LU_train$visit= str_extract(LU_train$visit, "\\d")
+taken_train$visit=str_extract(taken_train$visit, "\\d")
 
 ```
 
@@ -87,6 +98,10 @@ Tip: You will have to do identical work for both data sets, so to save time on t
 
 
 ```{r}
+?gsub
+demo_train$SUBJ <- gsub("\\.", "", demo_train$SUBJ, perl = TRUE)
+LU_train$SUBJ <- gsub("\\.", "", LU_train$SUBJ, perl = TRUE)
+taken_train$SUBJ <- gsub("\\.", "", taken_train$SUBJ, perl = TRUE)
 
 ```
 

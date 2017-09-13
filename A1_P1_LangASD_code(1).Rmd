@@ -68,10 +68,10 @@ Tip: Look into the package data.table, or google "how to rename variables in R"
 ```{r}
 library(plyr)
 
-demo_train = rename(demo_train, c("Child.ID" = "SUBJ"))
-demo_train = rename(demo_train, c("VISIT" = "visit"))
-LU_train = rename(LU_train, c("VISIT" = "visit"))
-taken_train = rename(taken_train, c("VISIT" = "visit"))
+demo_train = plyr::rename(demo_train, c("Child.ID" = "SUBJ"))
+demo_train = plyr::rename(demo_train, c("Visit" = "visit"))
+LU_train = plyr::rename(LU_train, c("VISIT" = "visit"))
+taken_train = plyr::rename(taken_train, c("VISIT" = "visit"))
 
 ```
 
@@ -80,7 +80,7 @@ Tip: There is a package called stringr, which will be very handy for you also in
 
 ```{r}
 library(stringr)
-?str_extract()
+#?str_extract()
 LU_train$visit= str_extract(LU_train$visit, "\\d")
 taken_train$visit=str_extract(taken_train$visit, "\\d")
 
@@ -98,7 +98,7 @@ Tip: You will have to do identical work for both data sets, so to save time on t
 
 
 ```{r}
-?gsub
+#?gsub
 demo_train$SUBJ <- gsub("\\.", "", demo_train$SUBJ, perl = TRUE)
 LU_train$SUBJ <- gsub("\\.", "", LU_train$SUBJ, perl = TRUE)
 taken_train$SUBJ <- gsub("\\.", "", taken_train$SUBJ, perl = TRUE)
@@ -120,8 +120,16 @@ The variables we need are: Child.ID, Visit, Ethnicity, Diagnosis, Gender, Age, A
 It would be smart to rename the MullenRaw and ExpressiveLangRaw into something you can remember (i.e. nonVerbalIQ, verbalIQ)
 
 ```{r}
-
-
+demo_train = plyr::rename(demo_train, c("SUBJ" = "id"))
+LU_train = plyr::rename(LU_train, c("SUBJ" = "id"))
+taken_train = plyr::rename(taken_train, c("SUBJ" = "id"))
+demo_train = plyr::rename(demo_train, c("MullenRaw" = "nonverbal_IQ"))
+demo_train = plyr::rename(demo_train, c("ExpressiveLangRaw" = "verbal_IQ"))
+library(tidyverse)
+#?select
+demo_train1= select(demo_train, id, visit, Ethnicity, Diagnosis, Gender, Age, ADOS, nonverbal_IQ, verbal_IQ)
+LU_train1= select(LU_train, id, visit, MOT_MLU, MOT_LUstd, CHI_MLU, CHI_LUstd)
+taken_train1= select(taken_train, id, visit, types_MOT, types_CHI, tokens_MOT, tokens_CHI)
 ```
 
 2e. Finally we are ready to merge all the data sets into just one. 
@@ -131,7 +139,12 @@ Tip: Merge only works for two data frames at the time.
 Tip: Check the number of observations in the datasets before and after merging. What is going on?
 
 ```{r}
+df= merge(demo_train1, LU_train1)
+#keepall= merge (demo_train1, LU_train1, all= T)
+#problem: rows disappear because they only exist in one dataset. For ex. there's AA in demo_train but not in LU_train.
+#I would discard the data, because we only have the demographic data for them, and not everything else we are interested in. Maybe they arrived to the visit but something happened and they didn't do the interactions?
 
+port1=merge(df, taken_train1)
 ```
 
 Are we done yet?
@@ -146,6 +159,10 @@ Tip: the final dataset should have as many rows as the the old one.
 
 ```{r}
 
+subset_visit= subset(port1, port1$visit == "1", select= c("id","ADOS", "nonverbal_IQ", "verbal_IQ"))
+subset_all= subset(port1, select= -c(ADOS, nonverbal_IQ, verbal_IQ))
+final= merge(subset_all, subset_visit, all=T)
+
 ```
 
 Now, we are almost ready to actually start working with the data. However, here are some additional finishing touches:
@@ -159,7 +176,18 @@ Tip: as.numeric() might be a useful function, but not alone.
 Tip: Google "how to rename levels in R".
 
 ```{r}
+participants= c(final$id)
+parti=as.numeric(as.factor(participants))
+final$id= parti
 
+final$visit= as.numeric(final$visit)
+final$Gender=as.factor(final$Gender)
+
+test=final
+
+library(plyr)
+final$Gender=revalue(final$Gender, c("1"="M", "2"="F"))
+final$Diagnosis=revalue(final$Diagnosis, c("A"="ASD", "B"="TD"))
 
 ```
 
@@ -167,6 +195,7 @@ Tip: Google "how to rename levels in R".
 Save the data set using into a csv file. Hint: look into write.csv()
 
 ```{r}
+write.csv(final, file = "port1_data.csv", row.names = F)
 
 ```
 

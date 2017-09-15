@@ -98,7 +98,7 @@ Tip: You will have to do identical work for both data sets, so to save time on t
 
 
 ```{r}
-#?gsub
+
 demo_train$SUBJ <- gsub("\\.", "", demo_train$SUBJ, perl = TRUE)
 LU_train$SUBJ <- gsub("\\.", "", LU_train$SUBJ, perl = TRUE)
 taken_train$SUBJ <- gsub("\\.", "", taken_train$SUBJ, perl = TRUE)
@@ -126,7 +126,6 @@ taken_train = plyr::rename(taken_train, c("SUBJ" = "id"))
 demo_train = plyr::rename(demo_train, c("MullenRaw" = "nonverbal_IQ"))
 demo_train = plyr::rename(demo_train, c("ExpressiveLangRaw" = "verbal_IQ"))
 library(tidyverse)
-#?select
 demo_train1= select(demo_train, id, visit, Ethnicity, Diagnosis, Gender, Age, ADOS, nonverbal_IQ, verbal_IQ)
 LU_train1= select(LU_train, id, visit, MOT_MLU, MOT_LUstd, CHI_MLU, CHI_LUstd)
 taken_train1= select(taken_train, id, visit, types_MOT, types_CHI, tokens_MOT, tokens_CHI)
@@ -183,9 +182,7 @@ final$id= parti
 final$visit= as.numeric(final$visit)
 final$Gender=as.factor(final$Gender)
 
-test=final
 
-library(plyr)
 final$Gender=revalue(final$Gender, c("1"="M", "2"="F"))
 final$Diagnosis=revalue(final$Diagnosis, c("A"="ASD", "B"="TD"))
 
@@ -212,7 +209,42 @@ List all kids who:
 3. have not completed all trials. Tip: Use pipes to solve this
 
 ```{r}
+#1.
+#my version (after Celine told us that we did the wrong thing)
+one = na.omit(final) #get out na-s
+uno_means= summarise(group_by(one, id), save_mean=mean(CHI_MLU)) # get the mean of CHI_MLU belonging to the same id
+uno=filter(uno_means, save_mean > 2.7) # get out all the rows where the mean is > 2.7
 
+#trying out the pipe version
+# take "one", group it by id, make the mean of CHI_MLU for each id. get out the rows where meanMLU is > 2.7
+one = na.omit(final) 
+more_across_all= one %>% 
+      group_by(id) %>%
+      summarise(meanMLU = mean(CHI_MLU)) %>%
+      filter(meanMLU > 2.7)
+
+#2.
+subset_two= subset(final, final$visit == "1", select= c(id,CHI_MLU))
+two= unique(filter(subset_two, subset_two$CHI_MLU < 1.5))
+
+
+#3.
+#my code
+#get out all rows containing NAs (aka not completed trials)
+#count how many rows are there (this would be the tally function)
+#get out the ones where there are less than 6 rows
+tres_na= na.omit(final)
+tres= summarise(group_by(tres_na, id), save= length(id))
+tres_missing= filter(tres, save < 6)
+
+#trying out Celine's code with pipes
+three=na.omit(final)
+not_all= three %>%
+    group_by(id) %>% 
+    tally() %>% #counts rows
+    filter(n < 6)
+#shortcut for the pipe thing (control+shift+m)
+#get out all NAs, count the rows for each participant, select the participants where there are rows missing.
 
 ```
 
@@ -223,8 +255,13 @@ USING ARRANGE
 2. Sort kids to find the kid who produced the least amount of words on the 1st visit.
 
 ```{r}
+#1.
+most_6= subset(final, final$visit== 6, select=c(id:verbal_IQ))
+most= arrange(most_6, desc(tokens_CHI))
 
-
+#2.
+least_1= subset(final, final$visit== 1, select=c(id:verbal_IQ))
+least= arrange(least_1, tokens_CHI)
 ```
 
 USING SELECT
@@ -234,6 +271,11 @@ USING SELECT
 
 ```{r}
 
+only_1=filter(final, Diagnosis == "ASD")
+only= select(only_1, CHI_MLU, MOT_MLU, tokens_CHI, tokens_MOT)
+
+what_happens= select(only_1, CHI_MLU, MOT_MLU, tokens_CHI, tokens_MOT, tokens_MOT)
+# R is smart and doesn't put the column there twice
 ```
 
 
@@ -243,6 +285,18 @@ USING MUTATE, SUMMARISE and PIPES
 3. The solution to task above enables us to assess the average amount of words produced by each child. Why don't we just use these average values to describe the language production of the children? What is the advantage of keeping all the data?
 
 ```{r}
+#1.
+#I'm confused about what the task is? But according to the email we received:
+all_words_spoken= mutate(final, average=mean(tokens_CHI))
 
+#2.
+all_words_mean= final %>% 
+  group_by(id) %>%
+  summarise(mean(tokens_CHI))
+
+all_words= merge(final, all_words_mean)
+
+#3.
+#It keeps the big variance in the data, the analysis will be more precise.
 
 ```

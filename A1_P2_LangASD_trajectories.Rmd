@@ -112,7 +112,6 @@ str(port1_data)
 
 #correcting
 port1_data$id= as.factor(port1_data$id)
-port1_data$visit= as.factor(port1_data$visit)
 
 #make subset of first and last visit
 visit_1 = subset(port1_data, port1_data$visit == "1", select= c(id:verbal_IQ))
@@ -327,6 +326,12 @@ r.squaredGLMM(model7)
 model8= lmer(CHI_MLU ~ ADOS + visit + MOT_MLU + types_CHI + types_MOT + verbal_IQ + Diagnosis*visit + (1 + visit|id), port1_data)
 summary(model8)
 r.squaredGLMM(model8)
+
+#changing after the things we discussed in class
+#get out all the variables that explain it too obviously (types, verbal IQ)
+model9= lmer(CHI_MLU ~ ADOS + visit + MOT_MLU  + Diagnosis*visit + (1 + visit|id), port1_data)
+summary(model9)
+r.squaredGLMM(model9)
 
 ```
 

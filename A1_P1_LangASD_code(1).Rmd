@@ -49,7 +49,7 @@ Load the three data sets, after downloading them from dropbox and saving them in
 ```{r}
 demo_train= read.csv("C:/Users/Viki/Documents/egyetem/exp.met/port1/assignment1/demo_train(1).csv")
 LU_train= read.csv("C:/Users/Viki/Documents/egyetem/exp.met/port1/assignment1/LU_train.csv")
-taken_train= read.csv("C:/Users/Viki/Documents/egyetem/exp.met/port1/assignment1/token_train.csv")
+token_train= read.csv("C:/Users/Viki/Documents/egyetem/exp.met/port1/assignment1/token_train.csv")
 ```
 
 Explore the 3 datasets (e.g. visualize them, summarize them, etc.). You will see that the data is messy, since the psychologists collected the demographic data, a linguist analyzed the length of utterance in May 2014 and the same linguist analyzed the words several months later. In particular:
@@ -68,10 +68,10 @@ Tip: Look into the package data.table, or google "how to rename variables in R"
 ```{r}
 library(plyr)
 
-demo_train = plyr::rename(demo_train, c("Child.ID" = "SUBJ"))
+demo_train = plyr::rename(demo_train, c("Child.ID" = "id"))
 demo_train = plyr::rename(demo_train, c("Visit" = "visit"))
 LU_train = plyr::rename(LU_train, c("VISIT" = "visit"))
-taken_train = plyr::rename(taken_train, c("VISIT" = "visit"))
+token_train = plyr::rename(token_train, c("VISIT" = "visit"))
 
 ```
 
@@ -82,7 +82,7 @@ Tip: There is a package called stringr, which will be very handy for you also in
 library(stringr)
 #?str_extract()
 LU_train$visit= str_extract(LU_train$visit, "\\d")
-taken_train$visit=str_extract(taken_train$visit, "\\d")
+token_train$visit=str_extract(token_train$visit, "\\d")
 
 ```
 
@@ -99,9 +99,9 @@ Tip: You will have to do identical work for both data sets, so to save time on t
 
 ```{r}
 
-demo_train$SUBJ <- gsub("\\.", "", demo_train$SUBJ, perl = TRUE)
+demo_train$id <- gsub("\\.", "", demo_train$id, perl = TRUE)
 LU_train$SUBJ <- gsub("\\.", "", LU_train$SUBJ, perl = TRUE)
-taken_train$SUBJ <- gsub("\\.", "", taken_train$SUBJ, perl = TRUE)
+token_train$SUBJ <- gsub("\\.", "", token_train$SUBJ, perl = TRUE)
 
 ```
 
@@ -120,15 +120,16 @@ The variables we need are: Child.ID, Visit, Ethnicity, Diagnosis, Gender, Age, A
 It would be smart to rename the MullenRaw and ExpressiveLangRaw into something you can remember (i.e. nonVerbalIQ, verbalIQ)
 
 ```{r}
-demo_train = plyr::rename(demo_train, c("SUBJ" = "id"))
+
 LU_train = plyr::rename(LU_train, c("SUBJ" = "id"))
-taken_train = plyr::rename(taken_train, c("SUBJ" = "id"))
+token_train = plyr::rename(token_train, c("SUBJ" = "id"))
 demo_train = plyr::rename(demo_train, c("MullenRaw" = "nonverbal_IQ"))
 demo_train = plyr::rename(demo_train, c("ExpressiveLangRaw" = "verbal_IQ"))
+
 library(tidyverse)
 demo_train1= select(demo_train, id, visit, Ethnicity, Diagnosis, Gender, Age, ADOS, nonverbal_IQ, verbal_IQ)
 LU_train1= select(LU_train, id, visit, MOT_MLU, MOT_LUstd, CHI_MLU, CHI_LUstd)
-taken_train1= select(taken_train, id, visit, types_MOT, types_CHI, tokens_MOT, tokens_CHI)
+token_train1= select(token_train, id, visit, types_MOT, types_CHI, tokens_MOT, tokens_CHI)
 ```
 
 2e. Finally we are ready to merge all the data sets into just one. 
@@ -143,7 +144,7 @@ df= merge(demo_train1, LU_train1)
 #problem: rows disappear because they only exist in one dataset. For ex. there's AA in demo_train but not in LU_train.
 #I would discard the data, because we only have the demographic data for them, and not everything else we are interested in. Maybe they arrived to the visit but something happened and they didn't do the interactions?
 
-port1=merge(df, taken_train1)
+port1=merge(df, token_train1)
 ```
 
 Are we done yet?

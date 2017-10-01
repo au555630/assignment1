@@ -44,28 +44,34 @@ How did your models from last time perform? In this exercise you have to compare
 ```{r}
 #wd and read  training data in
 getwd()
+#setwd("C:/Users/Viki/Documents/egyetem/exp.met/port1/assignment1")
 port1_data= read.csv("port1_data.csv")
 
+#check the format of the variables
+str(port1_data)
 #correcting
 port1_data$id= as.factor(port1_data$id)
 port1_data$visit=as.numeric(port1_data$visit)
 
-#final model from last time
+#old-final model (before discussion in class, kept in out of curiousity)
 model8= lmer(CHI_MLU ~ ADOS + visit + MOT_MLU + types_CHI + types_MOT + verbal_IQ + Diagnosis*visit + (1 + visit|id), port1_data)
 summary(model8)
 r.squaredGLMM(model8)
 
-#changing after the things we discussed in class
-model9= lmer(CHI_MLU ~ ADOS + visit + MOT_MLU  + Diagnosis*visit + (1 + visit|id), port1_data)
+#new-final model
+model9= lmer(CHI_MLU ~ ADOS + visit + Diagnosis*visit + nonverbal_IQ + I(visit^2) + (1 + visit|id), port1_data)
 summary(model9)
 r.squaredGLMM(model9)
+
 ```
 
 - calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the functions rmse() and predict() )
 ```{r}
-
+#get rmse
 modelr::rmse(model8, port1_data)
 modelr::rmse(model9, port1_data)
+#both are bad, but new-final is worse
+
 ```
 
 
@@ -136,8 +142,9 @@ modelr::rmse(model9, test_data)
 
 - optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
 
+The first model I tested was the old-final model, to see how a "bad model" performs on the test. Its performance on the train data is not so bad, the root mean square error is 0.287. Its performace on the test data is also not good, the root mean square error is 0.461.
+The second model was the new-final model, the best model I could create. Its performance on the train data is bad, the root mean square error is 0.324. Its performace on the test data is really bad, it does not fit the data, the root mean square error is 0.755.
 
-[HERE GOES YOUR ANSWER]
 
 ### Exercise 2) Model Selection via Cross-validation (N.B: ChildMLU!)
 
@@ -188,24 +195,30 @@ for (i in folds) {
   croval_test = rbind(croval_test, data.frame(test_model_error))
   croval_train= rbind(croval_train, data.frame(train_model_error))
 }
+#rmse for train data should always be smaller
+#no way to check if it's right
+
 
 mean_test_model11= mean(croval_test$test_model_error)
 mean_train_model11= mean(croval_train$train_model_error)
 
-
-#rmse for train data should be smaller
-#no way to check if it's right
+# mean of the rmse of the data the model is trained on (three folds)
+mean_train_model11 
+# mean of the rmse of the data the model is tested on (one fold) 
+mean_test_model11 
 
 
 ```
 - Report the results and comment on them.
+
+I used four folds to create the cross-validated model of the basic model. The root mean square error for the train data is 0.34, and for the test data is 0.82. This means that the model fits the train data much better than it fits the test data, which was expected to happen. The root mean square error is big for the test data, which means that the model is really bad at predicting.
 
 - Now try to find the best possible predictive model of ChildMLU, that is, the one that produces the best cross-validated results.
 ```{r}
 #I should use a function...
 
 
-#model8 is 
+#model8, the really bad old-final model
 #model8= lmer(CHI_MLU ~ ADOS + visit + MOT_MLU + types_CHI + types_MOT + verbal_IQ + Diagnosis*visit + (1 + visit|id), port1_data)
 
 croval_test= data.frame() 
@@ -216,7 +229,7 @@ folds=createFolds(unique(port1_data$id), 4)
 for (i in folds) {
   three_fold = subset(port1_data, id %not in% i)
   one_fold= subset(port1_data, id %in% i)
-  model8= lmer(CHI_MLU ~ Diagnosis + visit + (1 + visit|id), three_fold)
+  model8= lmer(CHI_MLU ~ ADOS + visit + MOT_MLU + types_CHI + types_MOT + verbal_IQ + Diagnosis*visit + (1 + visit|id), three_fold)
   train_model_error=modelr::rmse(model8, three_fold)
   pred= predict(model8, one_fold, allow.new.levels=TRUE)
   test_model_error = Metrics::rmse(one_fold$CHI_MLU, pred)
@@ -228,8 +241,9 @@ for (i in folds) {
 mean_test_model8= mean(croval_test$test_model_error)
 mean_train_model8= mean(croval_train$train_model_error)
 
-#model9 is
-#model9= lmer(CHI_MLU ~ ADOS + visit + MOT_MLU  + Diagnosis*visit + (1 + visit|id), port1_data)
+#model9, the new-final model
+#model9= lmer(CHI_MLU ~ ADOS + visit + Diagnosis*visit + nonverbal_IQ + I(visit^2) + (1 + visit|id), port1_data)
+
 
 croval_test= data.frame() 
 croval_train= data.frame() 
@@ -239,7 +253,7 @@ folds=createFolds(unique(port1_data$id), 4)
 for (i in folds) {
   three_fold = subset(port1_data, id %not in% i)
   one_fold= subset(port1_data, id %in% i)
-  model9= lmer(CHI_MLU ~ Diagnosis + visit + (1 + visit|id), three_fold)
+  model9= lmer(CHI_MLU ~ ADOS + visit + Diagnosis*visit + nonverbal_IQ + I(visit^2) + (1 + visit|id), three_fold)
   train_model_error=modelr::rmse(model9, three_fold)
   pred= predict(model9, one_fold, allow.new.levels=TRUE)
   test_model_error = Metrics::rmse(one_fold$CHI_MLU, pred)
@@ -251,11 +265,18 @@ for (i in folds) {
 mean_test_model9= mean(croval_test$test_model_error)
 mean_train_model9= mean(croval_train$train_model_error)
 
+
 best_model= cbind(mean_test_model8, mean_test_model9, mean_test_model11, mean_train_model8, mean_train_model9, mean_train_model11)
 
 
-#bad - the models are really bad
+
 ```
+
+The old-final model is the one that performed the best on the cross-validation. The root mean square error for the train data is 0.29, and for the test data is 0.43.
+The new-final model is the second best model. The root mean square error for the train data is 0.32, and for the test data is 0.64.
+Even though the old-final model is better than the new-final model, the old one is wrong in using variables that are too good predictors, like the unique words the child says. Therefore the new-final model is still the best model I could make.
+I could not think of any other model that gave me better cross-validated results.
+
 
 - Bonus Question 1: How would you go comparing the performance of the basic model and the cross-validated model on the testing set?
 - Bonus Question 2: What is the effect of changing the number of folds? Can you plot RMSE as a function of number of folds?
@@ -283,6 +304,8 @@ You want to evaluate:
 (substract the mean CHI_MLUs of each visit from the MLU of Bernie to see how different he is from them)
 
 ```{r}
+# I failed to create a loop or function for this
+
 visit1_train= subset(port1_data, port1_data$visit == "1" & port1_data$Diagnosis == "TD")
 visit2_train= subset(port1_data, port1_data$visit == "2" & port1_data$Diagnosis == "TD")
 visit3_train= subset(port1_data, port1_data$visit == "3" & port1_data$Diagnosis == "TD")
@@ -308,47 +331,56 @@ visit5=visit5_bernie - mean(visit5_train$CHI_MLU)
 visit6_bernie= bernie$CHI_MLU[6] 
 visit6=visit6_bernie - mean(visit6_train$CHI_MLU)
 
-bernies_development= cbind(visit1, visit2, visit3, visit4, visit5, visit6)
+bernie$others= rbind(mean(visit1_train$CHI_MLU), mean(visit2_train$CHI_MLU), mean(visit3_train$CHI_MLU), mean(visit4_train$CHI_MLU), mean(visit5_train$CHI_MLU), mean(visit6_train$CHI_MLU))
+
+bernie$bernies_development= rbind(visit1, visit2, visit3, visit4, visit5, visit6)
+
+
 
 #delete all the unnecessary variables
+rm(visit1_train, visit2_train, visit3_train, visit4_train, visit5_train, visit6_train)
+rm(visit1_bernie, visit2_bernie, visit3_bernie, visit4_bernie, visit5_bernie, visit6_bernie)
+rm(visit1, visit2, visit3, visit4, visit5, visit6)
 ```
 
 - how does the child fare compared to the model predictions at Visit 6? Is the child below or above expectations? (tip: use the predict() function on Bernie's data only and compare the prediction with the actual performance of the child)
 
 ```{r}
+#using the basic model
 
-riscrazy=lmer(CHI_MLU ~ Diagnosis+  (1+visit|id), port1_data)
+bernie$prediction=predict(model10, bernie)
 
-berniepred=predict(riscrazy, bernie)
-
-ggplot(bernie, aes(visit)) +
-  geom_line(aes(visit, CHI_MLU))+
-  geom_line(aes(visit, berniepred), colour= "red") +
-  labs(x="visit", y="CHI_MLU") 
-
-
-bernie$prediction=stats::predict(model10, bernie)
+modelr::rmse(model10, bernie)
 
 ggplot(bernie, aes(visit)) +
   geom_line(aes(visit, CHI_MLU))+
   geom_line(aes(visit, prediction), colour= "red") +
   labs(x="visit", y="CHI_MLU") 
 
-# model_basic = lmer(CHI_MLU ~ Diagnosis+visit + (1+visit|id),port1_data)
-# bernie$predict = predict(model_basic,bernie)
-# 
-# ggplot(bernie,aes(x=visit))+
-#   geom_point(aes(y=CHI_MLU))+
-#   geom_line(aes(y=CHI_MLU))+
-#   geom_point(aes(y=predict))+
-#   geom_line(aes(y=predict))
-# 
-# bernie$prediction - bernie$CHI_MLU
+#using the best model I could make
+
+bernie$better_prediction=predict(model9, bernie)
+
+modelr::rmse(model9, bernie)
+
+ggplot(bernie, aes(visit)) +
+  geom_line(aes(visit, CHI_MLU))+
+  geom_line(aes(visit, better_prediction), colour= "red") +
+  labs(x="visit", y="CHI_MLU") 
+
+
+#see it compared to other children
+ggplot(bernie, aes(visit)) +
+  geom_line(aes(visit, CHI_MLU))+
+  geom_line(aes(visit, others), colour= "red") +
+  labs(x="visit", y="CHI_MLU") 
+
 ```
 
 
 
-[HERE GOES YOUR ANSWER]
+Unfortunately the basic model is a model that is better at predicting Bernie's development than my best model. 
+Bernie performs better through all the visits than an average typically developing child, and is above expectations at visit 6.
 
 ### OPTIONAL: Exercise 4) Model Selection via Information Criteria
 Another way to reduce the bad surprises when testing a model on new data is to pay close attention to the relative information criteria between the models you are comparing. Let's learn how to do that!

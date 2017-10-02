@@ -373,7 +373,7 @@ ggplot(bernie, aes(visit)) +
 ggplot(bernie, aes(visit)) +
   geom_line(aes(visit, CHI_MLU))+
   geom_line(aes(visit, others), colour= "red") +
-  labs(x="visit", y="CHI_MLU") 
+  labs(x="visit", y="CHI_MLU", title= "Bernie (black) compared to other children") 
 
 ```
 
